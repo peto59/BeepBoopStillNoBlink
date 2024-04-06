@@ -14,11 +14,12 @@
 
 #include "main.h"
 
-int main_cpp(UART_HandleTypeDef huart2, TIM_HandleTypeDef *htim1);
+int main_cpp(UART_HandleTypeDef huart2, TIM_HandleTypeDef *htim1, TIM_HandleTypeDef *htim2);
+void setRead(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-
+void setRegister(uint16_t val);
 #endif /* INC_MAIN_CPP_H_ */

@@ -7,9 +7,11 @@
 
 #include "notes.h"
 
-void tone(TIM_HandleTypeDef *htim1, uint16_t freq, uint32_t delay, uint8_t volume){
+void tone(TIM_HandleTypeDef *htim1, TIM_HandleTypeDef *htim2, uint16_t freq, uint32_t delay, uint8_t volume){
+	TIM2->CNT = 0;
+	__HAL_TIM_SET_AUTORELOAD(htim2, delay);
 	if (freq == 0){
-//		__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_2, 0);
+		__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_2, 0);
 		return;
 	}
 	uint16_t ARR = (uint16_t)((1000000/freq)*0.94);
@@ -18,23 +20,35 @@ void tone(TIM_HandleTypeDef *htim1, uint16_t freq, uint32_t delay, uint8_t volum
 	__HAL_TIM_SET_AUTORELOAD(htim1, ARR);
 	__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_2, CRR);
 //	HAL_TIM_PWM_Start(htim1, TIM_CHANNEL_2);
-	HAL_Delay(delay);
+//	__HAL_TIM_SET_AUTORELOAD(htim2, delay);
+//	HAL_Delay(delay);
 //	HAL_TIM_PWM_Stop(htim1, TIM_CHANNEL_2);
 //	__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_2, 0);
 }
 
-void scale(TIM_HandleTypeDef *htim1){
+void scale(TIM_HandleTypeDef *htim1, TIM_HandleTypeDef *htim2){
 	uint32_t delay = 1000;
-	tone(htim1, 523, delay);
-	tone(htim1, 554, delay);
-	tone(htim1, 587, delay);
-	tone(htim1, 622, delay);
-	tone(htim1, 659, delay);
-	tone(htim1, 698, delay);
-	tone(htim1, 740, delay);
-	tone(htim1, 784, delay);
-	tone(htim1, 831, delay);
-	tone(htim1, 880, delay);
-	tone(htim1, 932, delay);
-	tone(htim1, 988, delay);
+	tone(htim1, htim2, 523, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 554, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 587, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 622, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 659, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 698, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 740, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 784, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 831, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 880, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 932, delay);
+	HAL_Delay(delay);
+	tone(htim1, htim2, 988, delay);
 }
