@@ -16,6 +16,8 @@
 
 int main_cpp(UART_HandleTypeDef huart2, TIM_HandleTypeDef *htim1, TIM_HandleTypeDef *htim2);
 void setRead(void);
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
+void playTone( TIM_HandleTypeDef *htim1, TIM_HandleTypeDef *htim2, uint16_t freq, uint64_t start, uint64_t end);
 
 #ifdef __cplusplus
 }

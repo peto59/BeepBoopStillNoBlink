@@ -48,7 +48,7 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+uint8_t UART2_rxBuffer[18];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,6 +73,29 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     	setRead();
     }
 }
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART2)
+    {
+    	HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_5);
+        // Process received data stored in UART2_rxBuffer
+        // For example, echo the received data back
+//        HAL_UART_Transmit(&huart2, UART2_rxBuffer, 26, 100);
+    	uint16_t freq = (uint16_t)UART2_rxBuffer[0] << 8 | UART2_rxBuffer[1];
+	  uint64_t start = ((uint64_t)UART2_rxBuffer[2] << 56) | ((uint64_t)UART2_rxBuffer[3] << 48) |
+							((uint64_t)UART2_rxBuffer[4] << 40) | ((uint64_t)UART2_rxBuffer[5] << 32) |
+							((uint64_t)UART2_rxBuffer[6] << 24) | ((uint64_t)UART2_rxBuffer[7] << 16) |
+							((uint64_t)UART2_rxBuffer[8] << 8) | UART2_rxBuffer[9];
+	  uint64_t end = ((uint64_t)UART2_rxBuffer[10] << 56) | ((uint64_t)UART2_rxBuffer[11] << 48) |
+										((uint64_t)UART2_rxBuffer[12] << 40) | ((uint64_t)UART2_rxBuffer[13] << 32) |
+										((uint64_t)UART2_rxBuffer[14] << 24) | ((uint64_t)UART2_rxBuffer[15] << 16) |
+										((uint64_t)UART2_rxBuffer[16] << 8) | UART2_rxBuffer[17];
+	  	  playTone(&htim1, &htim2, freq, start, end);
+        // Restart the reception
+        HAL_UART_Receive_IT(&huart2, UART2_rxBuffer, 18);
+    }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -112,6 +135,7 @@ int main(void)
   __HAL_TIM_SET_AUTORELOAD(&htim2, 50000);
 //  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 999);
   HAL_TIM_Base_Start_IT(&htim2);
+  HAL_UART_Receive_IT(&huart2, UART2_rxBuffer, 18);
   /* USER CODE END 2 */
 
   /* Infinite loop */
