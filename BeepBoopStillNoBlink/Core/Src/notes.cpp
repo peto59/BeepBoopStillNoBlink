@@ -16,7 +16,7 @@ void tone(TIM_HandleTypeDef *htim1, TIM_HandleTypeDef *htim2, uint16_t freq, uin
 	}
 	uint16_t ARR = (uint16_t)((1000000/freq)*0.94);
 
-	uint16_t CRR = (uint16_t)((volume * ARR) / 200);
+	uint16_t CRR = (uint16_t)(ARR-((volume * ARR) / 200));
 	__HAL_TIM_SET_AUTORELOAD(htim1, ARR);
 	__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_2, CRR);
 //	HAL_TIM_PWM_Start(htim1, TIM_CHANNEL_2);

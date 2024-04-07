@@ -20,6 +20,9 @@ bool read = true;
 uint8_t U = 0b10000011;
 uint8_t O = 0b10000001;
 uint8_t L = 0b10001111;
+uint8_t M = 0b10010001;
+uint8_t o = 0b01000111;
+uint8_t d = 0b01000011;
 void setRead(void){
 	read = true;
 }
@@ -28,7 +31,13 @@ uint32_t lastButtonPressTimeB = 0;
 uint32_t lastButtonPressTimeC = 0;
 uint32_t lastValueTime = 0;
 uint8_t volume = 100;
-#define DEBOUNCE_TIME 100
+uint8_t button_mode = 0;
+uint8_t play_mode = 0;
+uint8_t readPlayMode(void){
+	return play_mode;
+}
+uint32_t DEBOUNCE_TIME = 150;
+#define DEFAULT_DEBOUNCE_TIME 150
 #define VALUE_SHOW_TIME 5000
 bool checkButtonPressA(void)
 {
@@ -49,6 +58,12 @@ bool checkButtonPressB(void)
     if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_RESET) // Button is pressed
     {
         uint32_t currentTime = HAL_GetTick();
+        if(currentTime - lastButtonPressTimeB > 1000){
+			DEBOUNCE_TIME = DEFAULT_DEBOUNCE_TIME;
+		}
+		else if (DEBOUNCE_TIME > 50){
+			DEBOUNCE_TIME -= 3;
+		}
         if (currentTime - lastButtonPressTimeB > DEBOUNCE_TIME)
         {
             // Button press is valid, perform your action here
@@ -63,6 +78,12 @@ bool checkButtonPressC(void)
     if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1) == GPIO_PIN_RESET) // Button is pressed
     {
         uint32_t currentTime = HAL_GetTick();
+        if(currentTime - lastButtonPressTimeC > 1000){
+			DEBOUNCE_TIME = DEFAULT_DEBOUNCE_TIME;
+		}
+		else if (DEBOUNCE_TIME > 50){
+			DEBOUNCE_TIME -= 1;
+		}
         if (currentTime - lastButtonPressTimeC > DEBOUNCE_TIME)
         {
             // Button press is valid, perform your action here
@@ -99,38 +120,68 @@ int main_cpp(UART_HandleTypeDef huart2, TIM_HandleTypeDef *htim1, TIM_HandleType
 //		  uint8_t received_end[8];
 		  while (1){
 			  uint32_t currentTime = HAL_GetTick();
-			  if (currentTime - lastValueTime > VALUE_SHOW_TIME){
-				  setRegister((U<<8) | seg[0]);
-				  setRegister((O<<8) | seg[1]);
-				  setRegister((L<<8) | seg[2]);
-			  }else{
+			  if (currentTime - lastValueTime < VALUE_SHOW_TIME){
+				  if(button_mode == 0){
+					  setRegister((U<<8) | seg[0]);
+					  setRegister((O<<8) | seg[1]);
+					  setRegister((L<<8) | seg[2]);
+				  }else if (button_mode == 1){
+					  setRegister((M<<8) | seg[0]);
+					  setRegister((o<<8) | seg[1]);
+					  setRegister((d<<8) | seg[2]);
+//					  setRegister((num[button_mode]<<8) | seg[3]);
+				  }
+			  }else if(button_mode == 0){
 				  if (volume == 100){
 					  setRegister((num[1]<<8) | seg[1]);
 					  setRegister((num[0]<<8) | seg[2]);
 					  setRegister((num[0]<<8) | seg[3]);
 				  }else if (volume > 9){
-					  setRegister((0xff<<8) | seg[1]);
+//					  setRegister((0xff<<8) | seg[1]);
 					  uint8_t tenths = (uint8_t)(volume / 10);
 					  setRegister((num[tenths]<<8) | seg[2]);
 					  setRegister((num[volume-(tenths*10)]<<8) | seg[3]);
 				  }else{
-					  setRegister((0xff<<8) | seg[1]);
-					  setRegister((0xff<<8) | seg[2]);
+//					  setRegister((0xff<<8) | seg[1]);
+//					  setRegister((0xff<<8) | seg[2]);
 					  setRegister((num[volume]<<8) | seg[3]);
 				  }
 
+			  }else if(button_mode == 1){
+				  setRegister((num[play_mode]<<8) | seg[3]);
+			  }
+			  if (checkButtonPressA()){
+				  button_mode++;
+				  if(button_mode > 1){
+					  button_mode = 0;
+				  }
+				  lastValueTime = currentTime;
 			  }
 			  if (checkButtonPressB()){
-				  if(volume > 0){
-					  volume -= 1;
+				  if (button_mode == 0){
+					  if(volume > 0){
+						  volume--;
+					  }
+				  }else if (button_mode == 1){
+					  play_mode--;
+					  if(play_mode < 0){
+						  play_mode = 2;
+					  }
 				  }
-				  lastValueTime = currentTime;
+				  lastValueTime = 0;
 			  }
 			  if (checkButtonPressC()){
-				  if(volume < 100){
-					  volume += 1;
+				  if (button_mode == 0){
+					  if(volume < 100){
+						  volume++;
+					  }
+				  }else if (button_mode == 1){
+					  play_mode++;
+					  if(play_mode > 2){
+						  play_mode = 0;
+					  }
 				  }
-				  lastValueTime = currentTime;
+				  lastValueTime = 0;
 			  }
 //			  bool full_received = true;
 
@@ -182,5 +233,20 @@ void setRegister(uint16_t val) {
     }
     HAL_GPIO_WritePin(GPIOB, LATCH_PIN, GPIO_PIN_SET); // Latch high
     HAL_Delay(1); // Adjust delay as needed
+//    shiftToLatch();
 }
 
+void shiftToLatch(void){
+	HAL_GPIO_WritePin(GPIOA, DATA_PIN, GPIO_PIN_SET); // Set data pin high
+	HAL_Delay(1); // Wait for a short period
+	HAL_GPIO_WritePin(GPIOA, CLOCK_PIN, GPIO_PIN_SET); // Pulse SRCLK pin high
+	HAL_Delay(1); // Wait for a short period
+	HAL_GPIO_WritePin(GPIOA, CLOCK_PIN, GPIO_PIN_RESET); // Pulse SRCLK pin low
+	HAL_Delay(1); // Wait for a short period
+
+	// Transfer data from shift register to latch register
+	HAL_GPIO_WritePin(GPIOB, LATCH_PIN, GPIO_PIN_SET); // Pulse LCLK pin high
+	HAL_Delay(1); // Wait for a short period
+	HAL_GPIO_WritePin(GPIOB, LATCH_PIN, GPIO_PIN_RESET); // Pulse LCLK pin low
+	HAL_Delay(1); // Wait for a short period
+}
